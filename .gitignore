@@ -15,3 +15,43 @@ buildNumber.properties
 .project
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Java
+*.class
+out/
+bin/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# IDE and editor
+.idea/
+*.iml
+.vscode/
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+*.local
+
+# Spring Boot local config overrides
+application-local.properties
+application-local.yml
+application-local.yaml

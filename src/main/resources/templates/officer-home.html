@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        select, button { padding: 8px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<h2>Officer Dashboard</h2>
+<form method="post" action="/logout" style="max-width: 140px;">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit">Logout</button>
+</form>
+
+<div class="card">
+    <h3>Assigned Grievances</h3>
+    <div th:if="${#lists.isEmpty(grievances)}">No assigned grievances.</div>
+    <div th:each="g : ${grievances}" class="card">
+        <div><strong th:text="${g.title}">Title</strong></div>
+        <div th:text="${g.description}">Description</div>
+        <div>Current Status: <span th:text="${g.status}">ASSIGNED</span></div>
+        <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <label>Update Status</label>
+            <select name="status">
+                <option th:each="status : ${statuses}" th:value="${status}" th:text="${status}"></option>
+            </select>
+            <button type="submit">Save</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
