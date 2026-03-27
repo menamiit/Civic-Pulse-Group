@@ -5,34 +5,157 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Officer Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 24px; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        select, button { padding: 8px; margin-top: 8px; }
+        :root {
+            --bg: #f8f8f2;
+            --ink: #293241;
+            --muted: #51606f;
+            --brand: #1d6fa3;
+            --surface: #ffffff;
+            --ok: #2a9d8f;
+        }
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            margin: 0;
+            background: linear-gradient(150deg, #eef4fa, #f8f8f2);
+            color: var(--ink);
+        }
+        .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+        .sidebar {
+            background: #1f2d3a;
+            color: #dbe8f5;
+            padding: 20px 14px;
+        }
+        .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
+        .nav-link {
+            display: block;
+            color: #dbe8f5;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .nav-link.active,
+        .nav-link:hover { background: #32485d; }
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #486177;
+            background: transparent;
+            color: #dbe8f5;
+            cursor: pointer;
+        }
+        .content { padding: 20px 16px 32px; }
+        .wrap { max-width: 1080px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; }
+        .title { font-size: 28px; font-weight: 700; }
+        .subtitle { color: var(--muted); margin-top: 4px; }
+        .grid { display: grid; gap: 14px; }
+        .stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-top: 14px; }
+        .card {
+            border: 1px solid #d8e3ee;
+            border-radius: 14px;
+            padding: 16px;
+            background: var(--surface);
+        }
+        .kpi { font-size: 28px; font-weight: 700; margin-top: 8px; }
+        .list-item { border: 1px solid #e6edf4; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .meta { color: var(--muted); font-size: 13px; }
+        .status {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 12px;
+            background: #e8f1f8;
+            color: var(--brand);
+            margin-top: 6px;
+        }
+        .status.done { background: #e3f3f1; color: var(--ok); }
+        select, button {
+            width: 100%;
+            padding: 9px;
+            margin-top: 8px;
+            border-radius: 10px;
+            border: 1px solid #cfdbe7;
+            box-sizing: border-box;
+            font: inherit;
+        }
+        button { background: var(--brand); color: #fff; border: none; cursor: pointer; }
+        .two { grid-template-columns: 1fr 1fr; margin-top: 14px; }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .two { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-<h2>Officer Dashboard</h2>
-<form method="post" action="/logout" style="max-width: 140px;">
-    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-    <button type="submit">Logout</button>
-</form>
-
-<div class="card">
-    <h3>Assigned Grievances</h3>
-    <div th:if="${#lists.isEmpty(grievances)}">No assigned grievances.</div>
-    <div th:each="g : ${grievances}" class="card">
-        <div><strong th:text="${g.title}">Title</strong></div>
-        <div th:text="${g.description}">Description</div>
-        <div>Current Status: <span th:text="${g.status}">ASSIGNED</span></div>
-        <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post">
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-            <label>Update Status</label>
-            <select name="status">
-                <option th:each="status : ${statuses}" th:value="${status}" th:text="${status}"></option>
-            </select>
-            <button type="submit">Save</button>
+            <button class="logout-btn" type="submit">Logout</button>
         </form>
+    </aside>
+
+    <main class="content">
+    <div class="wrap">
+        <div class="topbar">
+            <div>
+                <div class="title">Officer Dashboard</div>
+                <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Manage your assigned grievance queue.</div>
+            </div>
+        </div>
+
+    <div class="grid stats">
+        <div class="card">
+            <div>Total Assigned</div>
+            <div class="kpi" th:text="${totalAssigned}">0</div>
+        </div>
+        <div class="card">
+            <div>Active Work</div>
+            <div class="kpi" th:text="${activeCount}">0</div>
+        </div>
+        <div class="card">
+            <div>Solved by You</div>
+            <div class="kpi" th:text="${solvedCount}">0</div>
+        </div>
     </div>
+
+    <div class="grid two">
+        <div class="card">
+            <h3>Latest Assigned Grievances</h3>
+            <div th:if="${#lists.isEmpty(latestAssigned)}">No assigned grievances.</div>
+            <div th:each="g : ${latestAssigned}" class="list-item">
+                <div><strong th:text="${g.title}">Title</strong></div>
+                <div class="meta" th:text="${g.description}">Description</div>
+                <span class="status" th:text="${g.status}">ASSIGNED</span>
+                <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <label>Update Status</label>
+                    <select name="status">
+                        <option th:each="status : ${statuses}" th:selected="${status == g.status}" th:value="${status}" th:text="${status}"></option>
+                    </select>
+                    <button type="submit">Save</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Latest Solved</h3>
+            <div th:if="${#lists.isEmpty(latestSolved)}">No solved grievances yet.</div>
+            <div th:each="g : ${latestSolved}" class="list-item">
+                <div><strong th:text="${g.title}">Title</strong></div>
+                <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
+                <span class="status done" th:text="${g.status}">RESOLVED</span>
+            </div>
+        </div>
+    </div>
+</div>
+    </main>
 </div>
 </body>
 </html>

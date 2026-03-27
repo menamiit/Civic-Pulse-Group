@@ -5,40 +5,178 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Citizen Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 24px; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        input, textarea, button { width: 100%; padding: 8px; margin-top: 8px; }
-        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        :root {
+            --bg: #f4f8f9;
+            --ink: #19323c;
+            --muted: #56727c;
+            --brand: #0f6e8c;
+            --surface: #ffffff;
+            --ok: #197278;
+        }
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            margin: 0;
+            background: radial-gradient(circle at top right, #d4eef7, var(--bg));
+            color: var(--ink);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background: #0e3442;
+            color: #d9edf3;
+            padding: 20px 14px;
+        }
+        .brand {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+        .nav-link {
+            display: block;
+            color: #d9edf3;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .nav-link.active,
+        .nav-link:hover {
+            background: #145063;
+        }
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border: 1px solid #2f6474;
+            border-radius: 8px;
+            background: transparent;
+            color: #d9edf3;
+            cursor: pointer;
+        }
+        .content { padding: 20px 16px 32px; }
+        .title { font-size: 28px; font-weight: 700; }
+        .subtitle { color: var(--muted); margin-top: 4px; margin-bottom: 14px; }
+        .grid { display: grid; gap: 14px; }
+        .stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+        .stat, .panel {
+            background: var(--surface);
+            border: 1px solid #d9e7ec;
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .stat .k { font-size: 28px; font-weight: 700; margin-top: 8px; }
+        .panel h3 { margin: 0 0 12px; }
+        .two { grid-template-columns: 1.2fr 1fr; align-items: start; }
+        .list-item {
+            border: 1px solid #e1ecef;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fcfefe;
+        }
+        .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: #e8f3f7;
+            color: var(--brand);
+        }
+        .status.done { background: #e6f5f2; color: var(--ok); }
+        input, textarea, button, select {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #cfe0e6;
+            padding: 10px;
+            box-sizing: border-box;
+            margin-top: 8px;
+            font: inherit;
+        }
+        button.primary {
+            background: var(--brand);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .two { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-<h2>Citizen Dashboard</h2>
-<form method="post" action="/logout" style="max-width: 140px;">
-    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-    <button type="submit">Logout</button>
-</form>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </aside>
 
-<div class="card">
-    <h3>File a Grievance</h3>
-    <form method="post" action="/citizen/grievances">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-        <label>Title</label>
-        <input name="title" required />
-        <label>Description</label>
-        <textarea name="description" rows="4" required></textarea>
-        <button type="submit">Submit</button>
-    </form>
-</div>
+    <main class="content">
+        <div>
+            <div class="title">Citizen Dashboard</div>
+            <div class="subtitle">Welcome, <strong th:text="${username}">citizen</strong>. Track and submit grievances from one place.</div>
+        </div>
 
-<div class="card">
-    <h3>My Grievances</h3>
-    <div th:if="${#lists.isEmpty(grievances)}">No grievances filed yet.</div>
-    <div th:each="g : ${grievances}" class="card">
-        <div><strong th:text="${g.title}">Title</strong></div>
-        <div th:text="${g.description}">Description</div>
-        <div>Status: <span th:text="${g.status}">NEW</span></div>
-        <div>Assigned Officer: <span th:text="${g.assignedOfficer != null ? g.assignedOfficer.username : 'Not assigned'}">Not assigned</span></div>
+    <div class="grid stats">
+        <div class="stat">
+            <div>Total Submitted</div>
+            <div class="k" th:text="${totalCount}">0</div>
+        </div>
+        <div class="stat">
+            <div>Open Grievances</div>
+            <div class="k" th:text="${openCount}">0</div>
+        </div>
+        <div class="stat">
+            <div>Solved</div>
+            <div class="k" th:text="${solvedCount}">0</div>
+        </div>
     </div>
+
+    <div class="grid two" style="margin-top: 14px;">
+        <div class="panel">
+            <h3>Latest Submitted Grievances</h3>
+            <div th:if="${#lists.isEmpty(latestSubmitted)}">No grievances submitted yet.</div>
+            <div th:each="g : ${latestSubmitted}" class="list-item">
+                <div><strong th:text="${g.title}">Title</strong></div>
+                <div class="meta" th:text="${g.description}">Description</div>
+                <span class="status" th:classappend="${g.status.name() == 'RESOLVED' or g.status.name() == 'CLOSED'} ? ' done'" th:text="${g.status}">NEW</span>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>File a New Grievance</h3>
+            <form method="post" action="/citizen/grievances">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <label>Title</label>
+                <input name="title" required />
+                <label>Description</label>
+                <textarea name="description" rows="5" required></textarea>
+                <button class="primary" type="submit">Submit Grievance</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="panel" style="margin-top: 14px;">
+        <h3>Latest Solved Grievances</h3>
+        <div th:if="${#lists.isEmpty(latestSolved)}">No solved grievances yet.</div>
+        <div th:each="g : ${latestSolved}" class="list-item">
+            <div><strong th:text="${g.title}">Title</strong></div>
+            <div class="meta">Assigned Officer: <span th:text="${g.assignedOfficer != null ? g.assignedOfficer.username : 'Not assigned'}">Not assigned</span></div>
+            <span class="status done" th:text="${g.status}">RESOLVED</span>
+        </div>
+    </div>
+    </main>
 </div>
 </body>
 </html>
