@@ -132,7 +132,7 @@
             <div th:each="g : ${latestAssigned}" class="list-item">
                 <div><strong th:text="${g.title}">Title</strong></div>
                 <div class="meta" th:text="${g.description}">Description</div>
-                <span class="status" th:text="${g.status}">ASSIGNED</span>
+                <span class="status" th:text="${g.status}">PENDING</span>
                 <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <label>Update Status</label>

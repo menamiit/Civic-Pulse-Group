@@ -17,12 +17,31 @@ public class Grievance {
     @Column(nullable = false)
     private String title;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ComplaintCategory category = ComplaintCategory.OTHER;
+
     @Column(nullable = false, length = 2000)
     private String description;
 
+    @Column
+    private String location;
+
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
+    @Column
+    private String photoPath;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private GrievanceStatus status = GrievanceStatus.NEW;
+    private GrievanceStatus status = GrievanceStatus.PENDING;
+
+    @Column(nullable = false)
+    private LocalDateTime statusUpdatedAt = LocalDateTime.now();
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "citizen_id")

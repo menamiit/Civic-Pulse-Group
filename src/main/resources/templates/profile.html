@@ -81,6 +81,8 @@
     <aside class="sidebar">
         <div class="brand">Civic Pulse</div>
         <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" th:if="${isCitizen}" href="/citizen/complaints/new">Submit New Complaint</a>
+        <a class="nav-link" th:if="${isCitizen}" href="/citizen/my-grievances">My Grievances</a>
         <a class="nav-link active" href="/profile">Profile</a>
         <form method="post" action="/logout">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>

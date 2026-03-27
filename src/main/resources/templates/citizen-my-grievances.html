@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Grievances</title>
+    <style>
+        :root {
+            --bg: #f5f8fc;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --brand: #0f6e8c;
+            --surface: #ffffff;
+            --line: #d9e4ef;
+            --pending: #a16207;
+            --progress: #1d4ed8;
+            --resolved: #166534;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: radial-gradient(circle at top right, #e7f3ff, var(--bg));
+            color: var(--ink);
+        }
+        .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+        .sidebar {
+            background: #0e3442;
+            color: #d9edf3;
+            padding: 20px 14px;
+        }
+        .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
+        .nav-link {
+            display: block;
+            color: #d9edf3;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .nav-link.active,
+        .nav-link:hover { background: #145063; }
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border: 1px solid #2f6474;
+            border-radius: 8px;
+            background: transparent;
+            color: #d9edf3;
+            cursor: pointer;
+        }
+        .content { padding: 20px 16px 32px; }
+        .wrap { max-width: 1100px; }
+        .title { font-size: 30px; font-weight: 700; margin: 0; }
+        .subtitle { color: var(--muted); margin-top: 6px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .kpi { font-size: 26px; font-weight: 700; margin-top: 6px; }
+        .panel {
+            margin-top: 14px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .item {
+            border: 1px solid #e1e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fcfdff;
+        }
+        .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #334155;
+        }
+        .status.pending { background: #fef3c7; color: var(--pending); }
+        .status.inprogress { background: #dbeafe; color: var(--progress); }
+        .status.resolved { background: #dcfce7; color: var(--resolved); }
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/citizen/complaints/new">Submit New Complaint</a>
+        <a class="nav-link active" href="/citizen/my-grievances">My Grievances</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </aside>
+
+    <main class="content">
+        <div class="wrap">
+            <h1 class="title">My Grievances</h1>
+            <div class="subtitle">Welcome, <strong th:text="${username}">citizen</strong>. Track all your active grievances and status timestamps.</div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div>Active Grievances</div>
+                    <div class="kpi" th:text="${activeCount}">0</div>
+                </div>
+                <div class="stat">
+                    <div>Resolved (Recent)</div>
+                    <div class="kpi" th:text="${resolvedCount}">0</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin-top:0;">Active Grievances</h3>
+                <div th:if="${#lists.isEmpty(activeGrievances)}">No active grievances right now.</div>
+                <div th:each="g : ${activeGrievances}" class="item">
+                    <div><strong th:text="${g.title}">Title</strong></div>
+                    <div class="meta" th:text="${g.description}">Description</div>
+                    <div class="meta">Category: <span th:text="${g.category}">OTHER</span></div>
+                    <div class="meta">Assigned Officer: <span th:text="${g.assignedOfficer != null ? g.assignedOfficer.username : 'Not assigned yet'}">Not assigned yet</span></div>
+                    <div class="meta">Status changed at: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+                    <span class="status"
+                          th:classappend="${g.status.name() == 'PENDING'} ? ' pending' : (${g.status.name() == 'IN_PROGRESS'} ? ' inprogress' : ' resolved')"
+                          th:text="${g.status}">PENDING</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin-top:0;">Recently Resolved</h3>
+                <div th:if="${#lists.isEmpty(resolvedGrievances)}">No resolved grievances yet.</div>
+                <div th:each="g : ${resolvedGrievances}" class="item">
+                    <div><strong th:text="${g.title}">Title</strong></div>
+                    <div class="meta">Resolved at: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+                    <span class="status resolved" th:text="${g.status}">RESOLVED</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

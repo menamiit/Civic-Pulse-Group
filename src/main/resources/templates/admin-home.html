@@ -111,7 +111,7 @@
             <h3>Latest Submitted</h3>
             <div th:if="${#lists.isEmpty(latestSubmitted)}">No grievances yet.</div>
             <div th:each="g : ${latestSubmitted}" class="list-item">
-                <div><strong th:text="${g.title}">Title</strong> - <span th:text="${g.status}">NEW</span></div>
+                <div><strong th:text="${g.title}">Title</strong> - <span th:text="${g.status}">PENDING</span></div>
                 <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
             </div>
         </div>
@@ -130,7 +130,7 @@
         <h3>All Grievances (Assign to Officer)</h3>
         <div th:if="${#lists.isEmpty(grievances)}">No grievances yet.</div>
         <div th:each="g : ${grievances}" class="list-item">
-            <div><strong th:text="${g.title}">Title</strong> - <span th:text="${g.status}">NEW</span></div>
+            <div><strong th:text="${g.title}">Title</strong> - <span th:text="${g.status}">PENDING</span></div>
             <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
             <div class="meta">Assigned Officer: <span th:text="${g.assignedOfficer != null ? g.assignedOfficer.username : 'Not assigned'}">Not assigned</span></div>
             <form th:action="@{'/admin/grievances/' + ${g.id} + '/assign'}" method="post">

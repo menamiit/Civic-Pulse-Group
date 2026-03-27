@@ -1,5 +1,6 @@
 package com.menamiit.smartcityproject.service;
 
+import com.menamiit.smartcityproject.entity.ComplaintCategory;
 import com.menamiit.smartcityproject.entity.Grievance;
 import com.menamiit.smartcityproject.entity.GrievanceStatus;
 import com.menamiit.smartcityproject.entity.User;
@@ -8,6 +9,7 @@ import com.menamiit.smartcityproject.repository.GrievanceRepository;
 import com.menamiit.smartcityproject.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -22,14 +24,33 @@ public class GrievanceService {
     }
 
     public Grievance fileGrievance(String citizenUsername, String title, String description) {
+        return fileGrievance(citizenUsername, title, ComplaintCategory.OTHER, description, null, null, null, null);
+    }
+
+    public Grievance fileGrievance(
+        String citizenUsername,
+        String title,
+        ComplaintCategory category,
+        String description,
+        String location,
+        Double latitude,
+        Double longitude,
+        String photoPath
+    ) {
         User citizen = userRepository.findByUsername(citizenUsername)
             .orElseThrow(() -> new IllegalArgumentException("Citizen not found"));
 
         Grievance grievance = new Grievance();
         grievance.setTitle(title);
+        grievance.setCategory(category);
         grievance.setDescription(description);
+        grievance.setLocation(location);
+        grievance.setLatitude(latitude);
+        grievance.setLongitude(longitude);
+        grievance.setPhotoPath(photoPath);
         grievance.setCitizen(citizen);
-        grievance.setStatus(GrievanceStatus.NEW);
+        grievance.setStatus(GrievanceStatus.PENDING);
+        grievance.setStatusUpdatedAt(LocalDateTime.now());
         return grievanceRepository.save(grievance);
     }
 
@@ -56,7 +77,6 @@ public class GrievanceService {
         }
 
         grievance.setAssignedOfficer(officer);
-        grievance.setStatus(GrievanceStatus.ASSIGNED);
         return grievanceRepository.save(grievance);
     }
 
@@ -69,6 +89,7 @@ public class GrievanceService {
         }
 
         grievance.setStatus(status);
+        grievance.setStatusUpdatedAt(LocalDateTime.now());
         return grievanceRepository.save(grievance);
     }
 }

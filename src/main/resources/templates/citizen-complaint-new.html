@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit New Complaint</title>
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --brand: #0284c7;
+            --surface: #ffffff;
+            --outline: #dbe3ef;
+            --active: #e0f2fe;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at top right, #dff3ff, var(--bg));
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: #0e3442;
+            color: #d9edf3;
+            padding: 20px 14px;
+        }
+
+        .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
+
+        .nav-link {
+            display: block;
+            color: #d9edf3;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .nav-link.active,
+        .nav-link:hover { background: #145063; }
+
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border: 1px solid #2f6474;
+            border-radius: 8px;
+            background: transparent;
+            color: #d9edf3;
+            cursor: pointer;
+        }
+
+        .content { padding: 22px 16px 32px; }
+        .wrap { max-width: 1200px; }
+
+        .complaint-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .title { font-size: 38px; margin: 0; }
+        .sub { margin-top: 8px; color: var(--muted); font-size: 28px; }
+
+        .panel {
+            margin-top: 16px;
+            background: var(--surface);
+            border: 1px solid var(--outline);
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .field { margin-top: 14px; }
+        .field label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], textarea, select {
+            width: 100%;
+            border: 1px solid #ccd8e5;
+            border-radius: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            font: inherit;
+        }
+
+        .hint { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .cat-item {
+            position: relative;
+            display: block;
+        }
+
+        .cat-item input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .cat-card {
+            border: 2px solid #d5dee8;
+            border-radius: 14px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            background: #fff;
+            user-select: none;
+            transition: all 0.15s ease;
+            min-height: 90px;
+            display: grid;
+            place-items: center;
+            gap: 2px;
+        }
+
+        .cat-card .emoji { font-size: 28px; display: block; margin-bottom: 6px; }
+        .cat-card .name { font-weight: 700; font-size: 13px; letter-spacing: 0.04em; }
+
+        .cat-item input:checked + .cat-card {
+            border-color: var(--brand);
+            background: var(--active);
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.1) inset;
+        }
+
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            margin-top: 16px;
+            background: var(--brand);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .ghost {
+            background: #fff;
+            color: #0f172a;
+            border: 1px solid #c7d3e0;
+        }
+
+        .error {
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: #991b1b;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .note-panel {
+            margin-top: 16px;
+            background: #ffffff;
+            border: 1px solid var(--outline);
+            border-radius: 14px;
+            padding: 16px;
+            position: sticky;
+            top: 18px;
+        }
+
+        .note-panel h3 {
+            margin: 0 0 10px;
+            font-size: 20px;
+        }
+
+        .note-panel p {
+            margin: 0 0 10px;
+            color: var(--muted);
+        }
+
+        .note-list {
+            margin: 0;
+            padding-left: 18px;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        .note-list li { margin-bottom: 8px; }
+
+        .tip {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            color: #1e3a8a;
+            font-size: 13px;
+        }
+
+        @media (max-width: 980px) {
+            .layout { grid-template-columns: 1fr; }
+            .complaint-layout { grid-template-columns: 1fr; }
+            .category-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+            .row { grid-template-columns: 1fr; }
+            .title { font-size: 30px; }
+            .sub { font-size: 20px; }
+            .note-panel { position: static; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/citizen/complaints/new">Submit New Complaint</a>
+        <a class="nav-link" href="/citizen/my-grievances">My Grievances</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </aside>
+
+    <main class="content">
+        <div class="wrap">
+            <h1 class="title">New Complaint</h1>
+            <div class="sub">Welcome, <strong th:text="${username}">citizen</strong>. Fill in the details below.</div>
+
+            <div class="complaint-layout">
+                <form class="panel" method="post" action="/citizen/complaints" enctype="multipart/form-data">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                    <div th:if="${error}" class="error" th:text="${error}">Could not submit complaint.</div>
+
+                    <div class="field">
+                        <label for="title">Complaint Title *</label>
+                        <input id="title" name="title" type="text" maxlength="120" required />
+                    </div>
+
+                    <div class="field">
+                        <label>Select Category *</label>
+                        <div class="category-grid">
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="WATER" checked required>
+                                <span class="cat-card"><span class="emoji">💧</span><span class="name">WATER</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="STREET_LIGHT" required>
+                                <span class="cat-card"><span class="emoji">💡</span><span class="name">STREET LIGHT</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="ROAD" required>
+                                <span class="cat-card"><span class="emoji">🛣️</span><span class="name">ROAD</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="SANITATION" required>
+                                <span class="cat-card"><span class="emoji">🗑️</span><span class="name">SANITATION</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="DRAINAGE" required>
+                                <span class="cat-card"><span class="emoji">🌊</span><span class="name">DRAINAGE</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="PARK" required>
+                                <span class="cat-card"><span class="emoji">🌳</span><span class="name">PARK</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="ELECTRICITY" required>
+                                <span class="cat-card"><span class="emoji">⚡</span><span class="name">ELECTRICITY</span></span>
+                            </label>
+                            <label class="cat-item">
+                                <input type="radio" name="category" value="OTHER" required>
+                                <span class="cat-card"><span class="emoji">📌</span><span class="name">OTHER</span></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="description">Detailed Description *</label>
+                        <textarea id="description" name="description" rows="6" maxlength="2000" required></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label>Location (Optional)</label>
+                        <div class="row">
+                            <div>
+                                <input type="text" id="location" name="location" placeholder="Enter locality/landmark manually" />
+                                <div class="hint">You can type manually or use current location.</div>
+                            </div>
+                            <div>
+                                <button type="button" class="btn ghost" id="useCurrentLocationBtn">Use Current Location</button>
+                                <div class="hint" id="locationHint">Current location not captured yet.</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="latitude" name="latitude" />
+                        <input type="hidden" id="longitude" name="longitude" />
+                    </div>
+
+                    <div class="field">
+                        <label for="photo">Photo (Optional)</label>
+                        <input id="photo" name="photo" type="file" accept="image/*" />
+                        <div class="hint">Attach a photo of the issue if available.</div>
+                    </div>
+
+                    <button class="btn" type="submit">Submit Complaint</button>
+                </form>
+
+                <aside class="note-panel">
+                    <h3>Submission Instructions</h3>
+                    <p>Please review these points before submitting your grievance:</p>
+                    <ol class="note-list">
+                        <li>Use a clear, short title that identifies the issue quickly.</li>
+                        <li>Select the most relevant category to speed up routing to the right department.</li>
+                        <li>Describe the issue with specifics: what, when, and how severe it is.</li>
+                        <li>Add location details (street, landmark, area) for faster ground action.</li>
+                        <li>Use Current Location if possible for better geo-accuracy.</li>
+                        <li>Upload a photo when available. Clear photos improve resolution time.</li>
+                        <li>Avoid duplicate complaints for the same issue in the same location.</li>
+                        <li>Do not include sensitive personal data in complaint text.</li>
+                    </ol>
+                    <div class="tip">
+                        Tip: Complaints with accurate category + location + photo are usually processed faster.
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+(function () {
+    const btn = document.getElementById('useCurrentLocationBtn');
+    const latField = document.getElementById('latitude');
+    const lonField = document.getElementById('longitude');
+    const locationField = document.getElementById('location');
+    const hint = document.getElementById('locationHint');
+
+    btn.addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            hint.textContent = 'Geolocation is not supported by your browser.';
+            return;
+        }
+
+        hint.textContent = 'Fetching your current coordinates...';
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
+                latField.value = lat;
+                lonField.value = lon;
+
+                if (!locationField.value || locationField.value.trim() === '') {
+                    locationField.value = 'Current location (' + lat + ', ' + lon + ')';
+                }
+                hint.textContent = 'Current location captured successfully.';
+            },
+            function () {
+                hint.textContent = 'Could not fetch location. Please enter it manually.';
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+})();
+</script>
+</body>
+</html>
