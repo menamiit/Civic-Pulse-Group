@@ -1,8 +1,10 @@
 package com.menamiit.smartcityproject.controller;
 
 import com.menamiit.smartcityproject.entity.ComplaintCategory;
+import com.menamiit.smartcityproject.entity.Department;
 import com.menamiit.smartcityproject.entity.GrievanceStatus;
 import com.menamiit.smartcityproject.entity.Grievance;
+import com.menamiit.smartcityproject.entity.GrievancePriority;
 import com.menamiit.smartcityproject.entity.User;
 import com.menamiit.smartcityproject.entity.UserRole;
 import com.menamiit.smartcityproject.service.GrievanceService;
@@ -20,8 +22,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class DashboardController {
@@ -257,17 +262,30 @@ public class DashboardController {
     @GetMapping("/admin/home")
     public String adminHome(Authentication authentication, Model model) {
         List<com.menamiit.smartcityproject.entity.Grievance> grievances = grievanceService.getAllGrievances();
-        List<User> officers = userService.findAllByRole(UserRole.OFFICER);
         List<User> users = userService.findAllUsers();
 
         long resolvedCount = grievances.stream()
             .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
             .count();
+        long pendingCount = grievances.stream()
+            .filter(g -> g.getStatus() == GrievanceStatus.PENDING)
+            .count();
+        long inProgressCount = grievances.stream()
+            .filter(g -> g.getStatus() == GrievanceStatus.IN_PROGRESS)
+            .count();
         long unassignedCount = grievances.stream()
             .filter(g -> g.getAssignedOfficer() == null)
             .count();
+        long highPriorityCount = grievances.stream()
+            .filter(g -> g.getPriority() == GrievancePriority.HIGH)
+            .count();
         long pendingOfficerVerification = users.stream()
             .filter(u -> u.getRole() == UserRole.OFFICER && !u.isVerified())
+            .count();
+        long overdueCount = grievances.stream()
+            .filter(g -> g.getDueDate() != null
+                && g.getDueDate().isBefore(LocalDate.now())
+                && g.getStatus() != GrievanceStatus.RESOLVED)
             .count();
 
         List<com.menamiit.smartcityproject.entity.Grievance> latestSubmitted = grievances.stream()
@@ -282,28 +300,78 @@ public class DashboardController {
             .toList();
 
         model.addAttribute("username", authentication.getName());
-        model.addAttribute("grievances", grievances);
-        model.addAttribute("officers", officers);
-        model.addAttribute("users", users);
         model.addAttribute("totalGrievances", grievances.size());
         model.addAttribute("resolvedCount", resolvedCount);
+        model.addAttribute("pendingCount", pendingCount);
+        model.addAttribute("inProgressCount", inProgressCount);
         model.addAttribute("unassignedCount", unassignedCount);
+        model.addAttribute("highPriorityCount", highPriorityCount);
         model.addAttribute("pendingOfficerVerification", pendingOfficerVerification);
+        model.addAttribute("overdueCount", overdueCount);
         model.addAttribute("latestSubmitted", latestSubmitted);
         model.addAttribute("latestResolved", latestResolved);
         return "admin-home";
     }
 
+    @GetMapping("/admin/grievances")
+    public String adminGrievances(Authentication authentication, Model model) {
+        List<com.menamiit.smartcityproject.entity.Grievance> grievances = grievanceService.getAllGrievances();
+
+        model.addAttribute("username", authentication.getName());
+        model.addAttribute("grievances", grievances);
+        return "admin-grievances";
+    }
+
+    @GetMapping("/admin/grievances/manage")
+    public String adminGrievanceManagement(Authentication authentication, Model model) {
+        List<com.menamiit.smartcityproject.entity.Grievance> grievances = grievanceService.getAllGrievances();
+        Map<Long, List<User>> eligibleOfficersByGrievance = new HashMap<>();
+
+        for (Grievance grievance : grievances) {
+            Department department = grievance.getMappedDepartment();
+            eligibleOfficersByGrievance.put(grievance.getId(), userService.findVerifiedOfficersByDepartment(department));
+        }
+
+        model.addAttribute("username", authentication.getName());
+        model.addAttribute("grievances", grievances);
+        model.addAttribute("eligibleOfficersByGrievance", eligibleOfficersByGrievance);
+        model.addAttribute("priorities", GrievancePriority.values());
+        return "admin-grievance-management";
+    }
+
+    @GetMapping("/admin/users")
+    public String adminUsers(Authentication authentication, Model model) {
+        List<User> users = userService.findAllUsers();
+        long pendingOfficerVerification = users.stream()
+            .filter(u -> u.getRole() == UserRole.OFFICER && !u.isVerified())
+            .count();
+
+        model.addAttribute("username", authentication.getName());
+        model.addAttribute("users", users);
+        model.addAttribute("pendingOfficerVerification", pendingOfficerVerification);
+        return "admin-users";
+    }
+
     @PostMapping("/admin/grievances/{id}/assign")
     public String assignGrievance(@PathVariable Long id, @RequestParam Long officerId) {
         grievanceService.assignToOfficer(id, officerId);
-        return "redirect:/admin/home";
+        return "redirect:/admin/grievances/manage";
+    }
+
+    @PostMapping("/admin/grievances/{id}/details")
+    public String updateGrievanceDetails(
+        @PathVariable Long id,
+        @RequestParam GrievancePriority priority,
+        @RequestParam(required = false) LocalDate dueDate
+    ) {
+        grievanceService.updateAdminMetadata(id, priority, dueDate);
+        return "redirect:/admin/grievances/manage";
     }
 
     @PostMapping("/admin/users/{id}/verify-officer")
     public String verifyOfficer(@PathVariable Long id) {
         userService.verifyOfficer(id);
-        return "redirect:/admin/home";
+        return "redirect:/admin/users";
     }
 
     private boolean hasRole(Authentication auth, String roleName) {

@@ -151,6 +151,15 @@
                 <div class="help-text">Officer accounts can only login after admin verification.</div>
             </div>
 
+            <div class="form-group" id="departmentGroup" style="display: none;">
+                <label for="department">Department</label>
+                <select id="department" name="department">
+                    <option value="" selected>Select department</option>
+                    <option th:each="d : ${departments}" th:value="${d.name()}" th:text="${#strings.replace(d.name(), '_', ' ')}"></option>
+                </select>
+                <div class="help-text">Required when registering as an officer.</div>
+            </div>
+
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
@@ -169,5 +178,23 @@
             Already have an account? <a href="/login">Login here</a>
         </div>
     </div>
+
+    <script>
+        const accountType = document.getElementById('accountType');
+        const departmentGroup = document.getElementById('departmentGroup');
+        const departmentSelect = document.getElementById('department');
+
+        function toggleDepartmentField() {
+            const isOfficer = accountType.value === 'OFFICER';
+            departmentGroup.style.display = isOfficer ? 'block' : 'none';
+            departmentSelect.required = isOfficer;
+            if (!isOfficer) {
+                departmentSelect.value = '';
+            }
+        }
+
+        accountType.addEventListener('change', toggleDepartmentField);
+        toggleDepartmentField();
+    </script>
 </body>
 </html>

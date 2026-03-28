@@ -1,5 +1,6 @@
 package com.menamiit.smartcityproject.service;
 
+import com.menamiit.smartcityproject.entity.Department;
 import com.menamiit.smartcityproject.entity.User;
 import com.menamiit.smartcityproject.entity.UserRole;
 import com.menamiit.smartcityproject.repository.UserRepository;
@@ -25,10 +26,14 @@ public class UserService implements UserDetailsService {
     }
     
     public User registerUser(String username, String email, String password) throws Exception {
-        return registerUser(username, email, password, UserRole.CITIZEN);
+        return registerUser(username, email, password, UserRole.CITIZEN, null);
     }
 
     public User registerUser(String username, String email, String password, UserRole accountType) throws Exception {
+        return registerUser(username, email, password, accountType, null);
+    }
+
+    public User registerUser(String username, String email, String password, UserRole accountType, Department department) throws Exception {
         if (userRepository.existsByUsername(username)) {
             throw new Exception("Username already exists");
         }
@@ -42,6 +47,7 @@ public class UserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(accountType);
         user.setVerified(accountType != UserRole.OFFICER);
+        user.setDepartment(resolveDepartment(accountType, department));
         
         return userRepository.save(user);
     }
@@ -59,10 +65,14 @@ public class UserService implements UserDetailsService {
     }
 
     public User createUser(String username, String email, String password, UserRole role) throws Exception {
-        return createUser(username, email, password, role, true);
+        return createUser(username, email, password, role, true, null);
     }
 
     public User createUser(String username, String email, String password, UserRole role, boolean verified) throws Exception {
+        return createUser(username, email, password, role, verified, null);
+    }
+
+    public User createUser(String username, String email, String password, UserRole role, boolean verified, Department department) throws Exception {
         if (userRepository.existsByUsername(username)) {
             throw new Exception("Username already exists");
         }
@@ -76,12 +86,17 @@ public class UserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
         user.setVerified(verified);
+        user.setDepartment(resolveDepartment(role, department));
 
         return userRepository.save(user);
     }
 
     public List<User> findAllByRole(UserRole role) {
         return userRepository.findAllByRole(role);
+    }
+
+    public List<User> findVerifiedOfficersByDepartment(Department department) {
+        return userRepository.findAllByRoleAndVerifiedTrueAndDepartment(UserRole.OFFICER, department);
     }
 
     public List<User> findAllUsers() {
@@ -96,6 +111,16 @@ public class UserService implements UserDetailsService {
         }
         user.setVerified(true);
         userRepository.save(user);
+    }
+
+    private Department resolveDepartment(UserRole role, Department department) {
+        if (role == UserRole.OFFICER) {
+            if (department == null) {
+                throw new IllegalArgumentException("Officer department is required");
+            }
+            return department;
+        }
+        return null;
     }
 
     @Override

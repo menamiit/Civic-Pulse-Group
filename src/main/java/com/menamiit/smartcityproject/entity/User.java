@@ -29,6 +29,10 @@ public class User {
     @Column(nullable = false)
     private UserRole role = UserRole.CITIZEN;
 
+    @Enumerated(EnumType.STRING)
+    @Column
+    private Department department;
+
     @Column(nullable = false)
     private boolean verified = true;
 }

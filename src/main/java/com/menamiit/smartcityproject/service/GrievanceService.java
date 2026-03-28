@@ -1,7 +1,9 @@
 package com.menamiit.smartcityproject.service;
 
 import com.menamiit.smartcityproject.entity.ComplaintCategory;
+import com.menamiit.smartcityproject.entity.Department;
 import com.menamiit.smartcityproject.entity.Grievance;
+import com.menamiit.smartcityproject.entity.GrievancePriority;
 import com.menamiit.smartcityproject.entity.GrievanceStatus;
 import com.menamiit.smartcityproject.entity.User;
 import com.menamiit.smartcityproject.entity.UserRole;
@@ -9,6 +11,7 @@ import com.menamiit.smartcityproject.repository.GrievanceRepository;
 import com.menamiit.smartcityproject.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -63,7 +66,7 @@ public class GrievanceService {
     }
 
     public List<Grievance> getAllGrievances() {
-        return grievanceRepository.findAll();
+        return grievanceRepository.findAllByOrderByCreatedAtDesc();
     }
 
     public Grievance assignToOfficer(Long grievanceId, Long officerId) {
@@ -75,8 +78,28 @@ public class GrievanceService {
         if (officer.getRole() != UserRole.OFFICER) {
             throw new IllegalArgumentException("Selected user is not an officer");
         }
+        if (!officer.isVerified()) {
+            throw new IllegalArgumentException("Officer account is not verified");
+        }
+
+        Department grievanceDepartment = grievance.getMappedDepartment();
+        if (officer.getDepartment() != grievanceDepartment) {
+            throw new IllegalArgumentException("Officer does not belong to grievance department");
+        }
 
         grievance.setAssignedOfficer(officer);
+        return grievanceRepository.save(grievance);
+    }
+
+    public Grievance updateAdminMetadata(Long grievanceId, GrievancePriority priority, LocalDate dueDate) {
+        Grievance grievance = grievanceRepository.findById(grievanceId)
+            .orElseThrow(() -> new IllegalArgumentException("Grievance not found"));
+
+        if (priority == null) {
+            throw new IllegalArgumentException("Priority is required");
+        }
+        grievance.setPriority(priority);
+        grievance.setDueDate(dueDate);
         return grievanceRepository.save(grievance);
     }
 

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Officers And Deadlines</title>
+    <style>
+        :root {
+            --bg: #f7f7fa;
+            --ink: #22223b;
+            --muted: #54546b;
+            --brand: #355070;
+            --surface: #ffffff;
+            --ok: #2a9d8f;
+            --warn: #e76f51;
+            --line: #d8dfef;
+        }
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            margin: 0;
+            background: linear-gradient(160deg, #eef0f8 0%, var(--bg) 65%);
+            color: var(--ink);
+        }
+        .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+        .sidebar {
+            background: #2b2442;
+            color: #ece7fb;
+            padding: 20px 14px;
+        }
+        .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
+        .nav-link {
+            display: block;
+            color: #ece7fb;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .nav-link.active,
+        .nav-link:hover { background: #463a67; }
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #625783;
+            background: transparent;
+            color: #ece7fb;
+            cursor: pointer;
+        }
+        .content { padding: 20px 16px 40px; }
+        .wrap { max-width: 1240px; }
+        .title { font-size: 30px; font-weight: 700; }
+        .subtitle { color: var(--muted); margin-top: 4px; }
+        .hint {
+            background: #f0f4ff;
+            border: 1px solid #d5def8;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-top: 12px;
+            color: #2b4470;
+            font-size: 14px;
+        }
+        .panel {
+            margin-top: 14px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px;
+        }
+        .ticket {
+            border: 1px solid #e2e8f5;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fbfcff;
+        }
+        .ticket:last-child { margin-bottom: 0; }
+        .ticket-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .title-wrap strong { display: block; margin-bottom: 4px; }
+        .meta {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .current-info {
+            color: var(--muted);
+            font-size: 13px;
+            text-align: right;
+            line-height: 1.5;
+        }
+        .actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: end;
+        }
+        .inline-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: end;
+        }
+        .field {
+            display: grid;
+            gap: 4px;
+        }
+        .field label {
+            font-size: 12px;
+            color: #5f6d89;
+        }
+        select, input[type="date"], button {
+            border-radius: 10px;
+            border: 1px solid #cfd7ea;
+            padding: 9px 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        select { min-width: 220px; }
+        input[type="date"] { min-width: 170px; }
+        button {
+            background: var(--brand);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+            width: auto;
+        }
+        .empty-note { padding: 10px; color: var(--muted); }
+        .status-pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 12px;
+            background: #eef2ff;
+            color: #304570;
+        }
+        @media (max-width: 1180px) {
+            .layout { grid-template-columns: 1fr; }
+            .ticket-head { flex-direction: column; }
+            .current-info { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link" href="/admin/home">Dashboard</a>
+        <a class="nav-link" href="/admin/grievances">All Grievances</a>
+        <a class="nav-link active" href="/admin/grievances/manage">Assign & Deadlines</a>
+        <a class="nav-link" href="/admin/users">User Profiles</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </aside>
+
+    <main class="content">
+        <div class="wrap">
+            <div class="title">Assign Officers And Deadlines</div>
+            <div class="subtitle">Welcome, <strong th:text="${username}">admin</strong>. Manage assignment, priority, and due dates for each grievance.</div>
+            <div class="hint">This page is action-focused. Use the All Grievances page for read-only review.</div>
+
+            <div class="panel">
+                <div th:if="${#lists.isEmpty(grievances)}" class="empty-note">No grievances found.</div>
+
+                <div th:each="g : ${grievances}" class="ticket">
+                    <div class="ticket-head">
+                        <div class="title-wrap">
+                            <strong th:text="${g.title}">Title</strong>
+                            <span class="status-pill" th:text="${g.status}">PENDING</span>
+                            <div class="meta">
+                                Citizen: <span th:text="${g.citizen.username}">citizen</span><br>
+                                Department: <span th:text="${#strings.replace(g.mappedDepartment.name(), '_', ' ')}">GENERAL</span>
+                            </div>
+                        </div>
+                        <div class="current-info">
+                            Assigned: <strong th:text="${g.assignedOfficer != null ? g.assignedOfficer.username : 'Not assigned'}">Not assigned</strong><br>
+                            Priority: <strong th:text="${g.priority}">MEDIUM</strong><br>
+                            Deadline: <strong th:text="${g.dueDate != null ? g.dueDate : 'Not set'}">Not set</strong>
+                        </div>
+                    </div>
+
+                    <div class="actions-row">
+                        <form class="inline-form" th:action="@{'/admin/grievances/' + ${g.id} + '/assign'}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <div class="field">
+                                <label>Eligible Officers</label>
+                                <select name="officerId" required>
+                                    <option value="" disabled selected>Select verified officer</option>
+                                    <option th:each="o : ${eligibleOfficersByGrievance[g.id]}" th:value="${o.id}" th:text="${o.username + ' (' + #strings.replace(o.department.name(), '_', ' ') + ')'}"></option>
+                                </select>
+                            </div>
+                            <button type="submit">Assign Officer</button>
+                        </form>
+
+                        <form class="inline-form" th:action="@{'/admin/grievances/' + ${g.id} + '/details'}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <div class="field">
+                                <label>Priority</label>
+                                <select name="priority" required>
+                                    <option th:each="p : ${priorities}" th:value="${p.name()}" th:text="${p.name()}" th:selected="${p == g.priority}"></option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Due Date</label>
+                                <input type="date" name="dueDate" th:value="${g.dueDate != null ? #temporals.format(g.dueDate, 'yyyy-MM-dd') : ''}">
+                            </div>
+                            <button type="submit">Save Priority & Deadline</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

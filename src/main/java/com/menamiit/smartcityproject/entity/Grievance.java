@@ -3,6 +3,7 @@ package com.menamiit.smartcityproject.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -40,6 +41,13 @@ public class Grievance {
     @Column(nullable = false)
     private GrievanceStatus status = GrievanceStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private GrievancePriority priority = GrievancePriority.MEDIUM;
+
+    @Column
+    private LocalDate dueDate;
+
     @Column(nullable = false)
     private LocalDateTime statusUpdatedAt = LocalDateTime.now();
 
@@ -60,5 +68,9 @@ public class Grievance {
     @PreUpdate
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Department getMappedDepartment() {
+        return category == null ? Department.GENERAL : category.mappedDepartment();
     }
 }
