@@ -121,8 +121,12 @@ public class GrievanceService {
             throw new IllegalArgumentException("You can only update your assigned grievances");
         }
 
-        if (grievance.getStatus() == GrievanceStatus.RESOLVED && status != GrievanceStatus.RESOLVED) {
-            throw new IllegalArgumentException("Resolved grievances cannot be moved back to active states");
+        if (grievance.getStatus() == GrievanceStatus.RESOLVED) {
+            throw new IllegalArgumentException("Resolved grievances cannot be updated by officer unless reopened by citizen");
+        }
+
+        if (status == GrievanceStatus.REOPENED) {
+            throw new IllegalArgumentException("Only citizen can reopen a grievance");
         }
 
         if (status == GrievanceStatus.RESOLVED) {
@@ -143,5 +147,77 @@ public class GrievanceService {
         grievance.setStatus(status);
         grievance.setStatusUpdatedAt(LocalDateTime.now());
         return grievanceRepository.save(grievance);
+    }
+
+    public Grievance addCitizenFeedback(
+        Long grievanceId,
+        String citizenUsername,
+        Integer rating,
+        String feedback,
+        String lowRatingReason
+    ) {
+        Grievance grievance = grievanceRepository.findById(grievanceId)
+            .orElseThrow(() -> new IllegalArgumentException("Grievance not found"));
+
+        if (grievance.getCitizen() == null || !grievance.getCitizen().getUsername().equals(citizenUsername)) {
+            throw new IllegalArgumentException("You can only rate your own grievances");
+        }
+        if (grievance.getStatus() != GrievanceStatus.RESOLVED) {
+            throw new IllegalArgumentException("Feedback can be submitted only for resolved grievances");
+        }
+        if (rating == null || rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Rating must be between 1 and 5");
+        }
+
+        grievance.setCitizenRating(rating);
+        grievance.setCitizenFeedback(normalizeOptionalText(feedback));
+
+        if (rating <= 2) {
+            grievance.setLowRatingReason(normalizeOptionalText(lowRatingReason));
+        } else {
+            grievance.setLowRatingReason(null);
+        }
+
+        return grievanceRepository.save(grievance);
+    }
+
+    public Grievance reopenByCitizen(Long grievanceId, String citizenUsername, String reopenReason) {
+        Grievance grievance = grievanceRepository.findById(grievanceId)
+            .orElseThrow(() -> new IllegalArgumentException("Grievance not found"));
+
+        if (grievance.getCitizen() == null || !grievance.getCitizen().getUsername().equals(citizenUsername)) {
+            throw new IllegalArgumentException("You can only reopen your own grievances");
+        }
+        if (grievance.getStatus() != GrievanceStatus.RESOLVED) {
+            throw new IllegalArgumentException("Only resolved grievances can be reopened");
+        }
+        if (grievance.isCitizenReopened()) {
+            throw new IllegalArgumentException("A grievance can be reopened by citizen only once");
+        }
+
+        String normalizedReason = normalizeOptionalText(reopenReason);
+        if (normalizedReason == null) {
+            throw new IllegalArgumentException("Reason is required to reopen a grievance");
+        }
+
+        grievance.setStatus(GrievanceStatus.REOPENED);
+        grievance.setStatusUpdatedAt(LocalDateTime.now());
+        grievance.setCitizenReopened(true);
+        grievance.setReopenReason(normalizedReason);
+        grievance.setReopenedAt(LocalDateTime.now());
+
+        grievance.setCitizenRating(null);
+        grievance.setCitizenFeedback(null);
+        grievance.setLowRatingReason(null);
+
+        return grievanceRepository.save(grievance);
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

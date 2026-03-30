@@ -83,6 +83,7 @@
         <a class="nav-link" href="/dashboard">Dashboard</a>
         <a class="nav-link" th:if="${isCitizen}" href="/citizen/complaints/new">Submit New Complaint</a>
         <a class="nav-link" th:if="${isCitizen}" href="/citizen/my-grievances">My Grievances</a>
+        <a class="nav-link" th:if="${isOfficer}" href="/officer/grievances">All Grievances</a>
         <a class="nav-link" th:if="${isOfficer}" href="/officer/tasks">Assigned Tasks</a>
         <a class="nav-link" th:if="${isAdmin}" href="/admin/grievances/manage">Assign &amp; Deadlines</a>
         <a class="nav-link active" href="/profile">Profile</a>

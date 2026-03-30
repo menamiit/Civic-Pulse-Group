@@ -120,6 +120,7 @@
     <aside class="sidebar">
         <div class="brand">Civic Pulse</div>
         <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/officer/grievances">All Grievances</a>
         <a class="nav-link" href="/officer/tasks">Assigned Tasks</a>
         <a class="nav-link" href="/profile">Profile</a>
         <form method="post" action="/logout">
@@ -132,7 +133,7 @@
     <div class="wrap">
         <div>
             <div class="title">Officer Dashboard</div>
-            <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Track your queue and jump to active task updates.</div>
+            <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Track your queue and open task management pages.</div>
         </div>
 
     <div class="stats">
@@ -155,20 +156,21 @@
     </div>
 
     <div class="quick-actions">
-        <a class="btn primary" href="/officer/tasks">Open Assigned Tasks</a>
-        <a class="btn" href="/profile">View Profile</a>
+        <a class="btn primary" href="/officer/grievances">Open All Grievances</a>
+        <a class="btn" href="/officer/tasks">Open Assigned Tasks</a>
     </div>
 
     <div class="panel">
         <h3 style="margin-top: 0;">Recent Activity</h3>
         <div th:if="${#lists.isEmpty(recentActivity)}">No activity on assigned grievances yet.</div>
         <div th:each="g : ${recentActivity}" class="list-item">
-                <div><strong th:text="${g.title}">Title</strong></div>
-                <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
-                <div class="meta">Last update: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
-                <span class="status" th:classappend="${g.status.name() == 'RESOLVED'} ? ' done'" th:text="${g.status}">PENDING</span>
-            </div>
+            <div><strong th:text="${g.title}">Title</strong></div>
+            <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
+            <div class="meta">Last update: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+            <div class="meta">Rating: <span th:text="${g.citizenRating != null ? g.citizenRating + '/5' : 'Not rated yet'}">Not rated yet</span></div>
+            <span class="status" th:classappend="${g.status.name() == 'RESOLVED'} ? ' done'" th:text="${g.status}">PENDING</span>
         </div>
+    </div>
 </div>
     </main>
 </div>

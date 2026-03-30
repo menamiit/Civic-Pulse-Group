@@ -60,6 +60,24 @@ public class Grievance {
     @Column(length = 4000)
     private String resolutionImagePaths;
 
+    @Column
+    private Integer citizenRating;
+
+    @Column(length = 2000)
+    private String citizenFeedback;
+
+    @Column(length = 1000)
+    private String lowRatingReason;
+
+    @Column(nullable = false)
+    private boolean citizenReopened = false;
+
+    @Column(length = 2000)
+    private String reopenReason;
+
+    @Column
+    private LocalDateTime reopenedAt;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "citizen_id")
     private User citizen;

@@ -2,13 +2,13 @@ package com.menamiit.smartcityproject.controller;
 
 import com.menamiit.smartcityproject.entity.ComplaintCategory;
 import com.menamiit.smartcityproject.entity.Department;
-import com.menamiit.smartcityproject.entity.GrievanceStatus;
 import com.menamiit.smartcityproject.entity.Grievance;
 import com.menamiit.smartcityproject.entity.GrievancePriority;
+import com.menamiit.smartcityproject.entity.GrievanceStatus;
 import com.menamiit.smartcityproject.entity.User;
 import com.menamiit.smartcityproject.entity.UserRole;
-import com.menamiit.smartcityproject.service.GrievanceService;
 import com.menamiit.smartcityproject.service.FileStorageService;
+import com.menamiit.smartcityproject.service.GrievanceService;
 import com.menamiit.smartcityproject.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,22 +92,21 @@ public class DashboardController {
 
     @GetMapping("/citizen/home")
     public String citizenHome(Authentication authentication, Model model) {
-        List<com.menamiit.smartcityproject.entity.Grievance> grievances =
-            grievanceService.getCitizenGrievances(authentication.getName());
+        List<Grievance> grievances = grievanceService.getCitizenGrievances(authentication.getName());
 
         long solvedCount = grievances.stream()
             .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
             .count();
         long openCount = grievances.size() - solvedCount;
 
-        List<com.menamiit.smartcityproject.entity.Grievance> latestSubmitted = grievances.stream()
-            .sorted(Comparator.comparing(com.menamiit.smartcityproject.entity.Grievance::getCreatedAt).reversed())
+        List<Grievance> latestSubmitted = grievances.stream()
+            .sorted(Comparator.comparing(Grievance::getCreatedAt).reversed())
             .limit(5)
             .toList();
 
-        List<com.menamiit.smartcityproject.entity.Grievance> latestSolved = grievances.stream()
+        List<Grievance> latestSolved = grievances.stream()
             .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
-            .sorted(Comparator.comparing(com.menamiit.smartcityproject.entity.Grievance::getUpdatedAt).reversed())
+            .sorted(Comparator.comparing(Grievance::getUpdatedAt).reversed())
             .limit(5)
             .toList();
 
@@ -142,6 +141,38 @@ public class DashboardController {
         model.addAttribute("activeCount", activeGrievances.size());
         model.addAttribute("resolvedCount", resolvedGrievances.size());
         return "citizen-my-grievances";
+    }
+
+    @PostMapping("/citizen/grievances/{id}/feedback")
+    public String submitFeedback(
+        Authentication authentication,
+        @PathVariable Long id,
+        @RequestParam Integer rating,
+        @RequestParam(required = false) String feedback,
+        @RequestParam(required = false) String lowRatingReason
+    ) {
+        try {
+            grievanceService.addCitizenFeedback(id, authentication.getName(), rating, feedback, lowRatingReason);
+            return "redirect:/citizen/my-grievances?feedbackSaved=true";
+        } catch (Exception ex) {
+            log.warn("Citizen feedback failed for grievance {} by {}: {}", id, authentication.getName(), ex.getMessage());
+            return "redirect:/citizen/my-grievances?feedbackError=true";
+        }
+    }
+
+    @PostMapping("/citizen/grievances/{id}/reopen")
+    public String reopenGrievance(
+        Authentication authentication,
+        @PathVariable Long id,
+        @RequestParam String reopenReason
+    ) {
+        try {
+            grievanceService.reopenByCitizen(id, authentication.getName(), reopenReason);
+            return "redirect:/citizen/my-grievances?reopened=true";
+        } catch (Exception ex) {
+            log.warn("Citizen reopen failed for grievance {} by {}: {}", id, authentication.getName(), ex.getMessage());
+            return "redirect:/citizen/my-grievances?reopenError=true";
+        }
     }
 
     @GetMapping("/citizen/complaints/new")
@@ -182,7 +213,6 @@ public class DashboardController {
             try {
                 photoPath = fileStorageService.storeComplaintPhoto(photo);
             } catch (Exception uploadEx) {
-                // File upload is optional, so complaint submission should continue without photo.
                 log.warn("Photo upload failed for user {}: {}", authentication.getName(), uploadEx.getMessage());
             }
 
@@ -230,6 +260,27 @@ public class DashboardController {
         return "officer-tasks";
     }
 
+    @GetMapping("/officer/grievances")
+    public String officerGrievances(Authentication authentication, Model model) {
+        List<Grievance> grievances = grievanceService.getOfficerGrievances(authentication.getName());
+
+        List<Grievance> activeGrievances = grievances.stream()
+            .filter(g -> g.getStatus() != GrievanceStatus.RESOLVED)
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
+            .toList();
+
+        List<Grievance> resolvedGrievances = grievances.stream()
+            .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
+            .toList();
+
+        model.addAttribute("username", authentication.getName());
+        model.addAttribute("activeGrievances", activeGrievances);
+        model.addAttribute("resolvedGrievances", resolvedGrievances);
+        model.addAttribute("statuses", GrievanceStatus.values());
+        return "officer-grievances";
+    }
+
     @PostMapping("/officer/grievances/{id}/status")
     public String updateStatus(
         Authentication authentication,
@@ -241,16 +292,16 @@ public class DashboardController {
         try {
             List<String> storedPaths = fileStorageService.storeResolutionImages(resolutionImages, id);
             grievanceService.updateStatus(id, status, authentication.getName(), resolutionNotes, storedPaths);
-            return "redirect:/officer/tasks?updated=true";
+            return "redirect:/officer/grievances?updated=true";
         } catch (Exception ex) {
-            log.warn("Officer status update failed for grievance {} by {}: {}", id, authentication.getName(), ex.getMessage());
-            return "redirect:/officer/tasks?error=true";
+            log.warn("Officer status update blocked for grievance {} by {}: {}", id, authentication.getName(), ex.getMessage());
+            return "redirect:/officer/grievances?statusError=true";
         }
     }
 
     @GetMapping("/admin/home")
     public String adminHome(Authentication authentication, Model model) {
-        List<com.menamiit.smartcityproject.entity.Grievance> grievances = grievanceService.getAllGrievances();
+        List<Grievance> grievances = grievanceService.getAllGrievances();
         List<User> users = userService.findAllUsers();
 
         long resolvedCount = grievances.stream()
@@ -260,7 +311,9 @@ public class DashboardController {
             .filter(g -> g.getStatus() == GrievanceStatus.PENDING)
             .count();
         long inProgressCount = grievances.stream()
-            .filter(g -> g.getStatus() == GrievanceStatus.IN_PROGRESS)
+            .filter(g -> g.getStatus() == GrievanceStatus.IN_PROGRESS
+                || g.getStatus() == GrievanceStatus.REOPENED
+                || g.getStatus() == GrievanceStatus.ON_HOLD)
             .count();
         long unassignedCount = grievances.stream()
             .filter(g -> g.getAssignedOfficer() == null)
@@ -277,14 +330,14 @@ public class DashboardController {
                 && g.getStatus() != GrievanceStatus.RESOLVED)
             .count();
 
-        List<com.menamiit.smartcityproject.entity.Grievance> latestSubmitted = grievances.stream()
-            .sorted(Comparator.comparing(com.menamiit.smartcityproject.entity.Grievance::getCreatedAt).reversed())
+        List<Grievance> latestSubmitted = grievances.stream()
+            .sorted(Comparator.comparing(Grievance::getCreatedAt).reversed())
             .limit(5)
             .toList();
 
-        List<com.menamiit.smartcityproject.entity.Grievance> latestResolved = grievances.stream()
+        List<Grievance> latestResolved = grievances.stream()
             .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
-            .sorted(Comparator.comparing(com.menamiit.smartcityproject.entity.Grievance::getStatusUpdatedAt).reversed())
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
             .limit(5)
             .toList();
 
@@ -304,7 +357,7 @@ public class DashboardController {
 
     @GetMapping("/admin/grievances")
     public String adminGrievances(Authentication authentication, Model model) {
-        List<com.menamiit.smartcityproject.entity.Grievance> grievances = grievanceService.getAllGrievances();
+        List<Grievance> grievances = grievanceService.getAllGrievances();
 
         model.addAttribute("username", authentication.getName());
         model.addAttribute("grievances", grievances);
@@ -313,7 +366,7 @@ public class DashboardController {
 
     @GetMapping("/admin/grievances/manage")
     public String adminGrievanceManagement(Authentication authentication, Model model) {
-        List<com.menamiit.smartcityproject.entity.Grievance> grievances = grievanceService.getAllGrievances();
+        List<Grievance> grievances = grievanceService.getAllGrievances();
         Map<Long, List<User>> eligibleOfficersByGrievance = new HashMap<>();
 
         for (Grievance grievance : grievances) {
@@ -390,6 +443,18 @@ public class DashboardController {
             .filter(g -> g.getStatusUpdatedAt() != null && g.getStatusUpdatedAt().toLocalDate().isEqual(LocalDate.now()))
             .count();
 
+        List<Grievance> latestAssigned = grievances.stream()
+            .filter(g -> g.getStatus() != GrievanceStatus.RESOLVED)
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
+            .limit(5)
+            .toList();
+
+        List<Grievance> latestSolved = grievances.stream()
+            .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
+            .limit(5)
+            .toList();
+
         List<Grievance> recentActivity = grievances.stream()
             .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt, Comparator.nullsLast(LocalDateTime::compareTo)).reversed())
             .limit(5)
@@ -399,6 +464,8 @@ public class DashboardController {
         model.addAttribute("activeGrievances", activeGrievances);
         model.addAttribute("resolvedGrievances", resolvedGrievances);
         model.addAttribute("recentActivity", recentActivity);
+        model.addAttribute("latestAssigned", latestAssigned);
+        model.addAttribute("latestSolved", latestSolved);
         model.addAttribute("totalAssigned", grievances.size());
         model.addAttribute("activeCount", activeGrievances.size());
         model.addAttribute("solvedCount", resolvedGrievances.size());
