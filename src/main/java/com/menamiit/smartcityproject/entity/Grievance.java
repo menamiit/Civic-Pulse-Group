@@ -51,6 +51,24 @@ public class Grievance {
     @Column(nullable = false)
     private LocalDateTime statusUpdatedAt = LocalDateTime.now();
 
+    @Column
+    private Integer citizenRating;
+
+    @Column(length = 2000)
+    private String citizenFeedback;
+
+    @Column(length = 1000)
+    private String lowRatingReason;
+
+    @Column(nullable = false)
+    private boolean citizenReopened = false;
+
+    @Column(length = 2000)
+    private String reopenReason;
+
+    @Column
+    private LocalDateTime reopenedAt;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "citizen_id")
     private User citizen;

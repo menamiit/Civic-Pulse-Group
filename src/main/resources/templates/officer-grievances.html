@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer All Grievances</title>
+    <style>
+        :root {
+            --bg: #f8f8f2;
+            --ink: #293241;
+            --muted: #51606f;
+            --brand: #1d6fa3;
+            --surface: #ffffff;
+            --ok: #2a9d8f;
+            --warn: #92400e;
+        }
+        body {
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            margin: 0;
+            background: linear-gradient(150deg, #eef4fa, #f8f8f2);
+            color: var(--ink);
+        }
+        .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+        .sidebar {
+            background: #1f2d3a;
+            color: #dbe8f5;
+            padding: 20px 14px;
+        }
+        .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
+        .nav-link {
+            display: block;
+            color: #dbe8f5;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .nav-link.active,
+        .nav-link:hover { background: #32485d; }
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #486177;
+            background: transparent;
+            color: #dbe8f5;
+            cursor: pointer;
+        }
+        .content { padding: 20px 16px 32px; }
+        .wrap { max-width: 1120px; }
+        .title { font-size: 28px; font-weight: 700; }
+        .subtitle { color: var(--muted); margin-top: 4px; }
+        .panel {
+            border: 1px solid #d8e3ee;
+            border-radius: 14px;
+            padding: 16px;
+            background: var(--surface);
+            margin-top: 14px;
+        }
+        .item {
+            border: 1px solid #e6edf4;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #ffffff;
+        }
+        .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+        .status {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 12px;
+            background: #e8f1f8;
+            color: var(--brand);
+            margin-top: 6px;
+        }
+        .status.done { background: #e3f3f1; color: var(--ok); }
+        .alert {
+            margin-top: 12px;
+            border-radius: 10px;
+            border: 1px solid;
+            padding: 10px;
+            font-size: 14px;
+        }
+        .alert.ok {
+            background: #ecfdf3;
+            border-color: #bbf7d0;
+            color: #14532d;
+        }
+        .alert.err {
+            background: #fff7ed;
+            border-color: #fdba74;
+            color: var(--warn);
+        }
+        select, button {
+            width: 100%;
+            padding: 9px;
+            margin-top: 8px;
+            border-radius: 10px;
+            border: 1px solid #cfdbe7;
+            box-sizing: border-box;
+            font: inherit;
+        }
+        button { background: var(--brand); color: #fff; border: none; cursor: pointer; }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/officer/grievances">All Grievances</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </aside>
+
+    <main class="content">
+        <div class="wrap">
+            <div class="title">All Assigned Grievances</div>
+            <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Manage active tasks and review ratings on resolved grievances.</div>
+
+            <div class="alert ok" th:if="${param.updated}">Status updated successfully.</div>
+            <div class="alert err" th:if="${param.statusError}">Status update blocked. Resolved grievances can only move when citizen reopens them.</div>
+
+            <div class="panel">
+                <h3 style="margin-top:0;">Active Grievances</h3>
+                <div th:if="${#lists.isEmpty(activeGrievances)}">No active grievances.</div>
+                <div th:each="g : ${activeGrievances}" class="item">
+                    <div><strong th:text="${g.title}">Title</strong></div>
+                    <div class="meta" th:text="${g.description}">Description</div>
+                    <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
+                    <div class="meta">Status changed at: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+                    <span class="status" th:text="${g.status}">PENDING</span>
+
+                    <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                        <label>Update Status</label>
+                        <select name="status">
+                            <option th:each="status : ${statuses}" th:if="${status.name() != 'REOPENED'}" th:selected="${status == g.status}" th:value="${status}" th:text="${status}"></option>
+                        </select>
+                        <button type="submit">Save</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin-top:0;">Resolved Grievances And Ratings</h3>
+                <div th:if="${#lists.isEmpty(resolvedGrievances)}">No resolved grievances yet.</div>
+                <div th:each="g : ${resolvedGrievances}" class="item">
+                    <div><strong th:text="${g.title}">Title</strong></div>
+                    <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
+                    <div class="meta">Resolved at: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+                    <span class="status done" th:text="${g.status}">RESOLVED</span>
+
+                    <div class="meta" style="margin-top:8px;">Citizen Rating: <strong th:text="${g.citizenRating != null ? g.citizenRating + '/5' : 'Not rated yet'}">Not rated yet</strong></div>
+                    <div class="meta" th:if="${g.citizenFeedback != null && !g.citizenFeedback.isBlank()}">Feedback: <span th:text="${g.citizenFeedback}">feedback</span></div>
+                    <div class="meta" th:if="${g.lowRatingReason != null && !g.lowRatingReason.isBlank()}">Low Rating Reason: <span th:text="${g.lowRatingReason}">reason</span></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -32,6 +32,49 @@ public class SchemaCompatibilityInitializer {
 
             addColumnIfMissing(
                 jdbcTemplate,
+                "GRIEVANCES",
+                "CITIZEN_RATING",
+                "ALTER TABLE grievances ADD COLUMN citizen_rating INTEGER"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
+                "GRIEVANCES",
+                "CITIZEN_FEEDBACK",
+                "ALTER TABLE grievances ADD COLUMN citizen_feedback VARCHAR(2000)"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
+                "GRIEVANCES",
+                "LOW_RATING_REASON",
+                "ALTER TABLE grievances ADD COLUMN low_rating_reason VARCHAR(1000)"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
+                "GRIEVANCES",
+                "CITIZEN_REOPENED",
+                "ALTER TABLE grievances ADD COLUMN citizen_reopened BOOLEAN DEFAULT FALSE"
+            );
+            jdbcTemplate.update("UPDATE grievances SET citizen_reopened = FALSE WHERE citizen_reopened IS NULL");
+
+            addColumnIfMissing(
+                jdbcTemplate,
+                "GRIEVANCES",
+                "REOPEN_REASON",
+                "ALTER TABLE grievances ADD COLUMN reopen_reason VARCHAR(2000)"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
+                "GRIEVANCES",
+                "REOPENED_AT",
+                "ALTER TABLE grievances ADD COLUMN reopened_at TIMESTAMP"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
                 "USERS",
                 "DEPARTMENT",
                 "ALTER TABLE users ADD COLUMN department VARCHAR(255)"
