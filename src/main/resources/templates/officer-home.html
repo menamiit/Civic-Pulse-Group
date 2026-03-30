@@ -6,62 +6,79 @@
     <title>Officer Dashboard</title>
     <style>
         :root {
-            --bg: #f8f8f2;
-            --ink: #293241;
-            --muted: #51606f;
-            --brand: #1d6fa3;
+            --bg: #eef6fb;
+            --ink: #17313f;
+            --muted: #49616f;
+            --brand: #0f6e8c;
             --surface: #ffffff;
-            --ok: #2a9d8f;
+            --ok: #187c6a;
+            --line: #d8e6ef;
         }
         body {
             font-family: "Segoe UI", Tahoma, sans-serif;
             margin: 0;
-            background: linear-gradient(150deg, #eef4fa, #f8f8f2);
+            background: radial-gradient(circle at top right, #d9f0fb, var(--bg));
             color: var(--ink);
         }
         .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
         .sidebar {
-            background: #1f2d3a;
-            color: #dbe8f5;
+            background: #0f3847;
+            color: #d6edf5;
             padding: 20px 14px;
         }
         .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
         .nav-link {
             display: block;
-            color: #dbe8f5;
+            color: #d6edf5;
             text-decoration: none;
             padding: 10px;
             border-radius: 8px;
             margin-bottom: 8px;
         }
         .nav-link.active,
-        .nav-link:hover { background: #32485d; }
+        .nav-link:hover { background: #195265; }
         .logout-btn {
             width: 100%;
             margin-top: 12px;
             padding: 10px;
             border-radius: 8px;
-            border: 1px solid #486177;
+            border: 1px solid #2c6b7f;
             background: transparent;
-            color: #dbe8f5;
+            color: #d6edf5;
             cursor: pointer;
         }
         .content { padding: 20px 16px 32px; }
         .wrap { max-width: 1080px; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; }
         .title { font-size: 28px; font-weight: 700; }
         .subtitle { color: var(--muted); margin-top: 4px; }
-        .grid { display: grid; gap: 14px; }
-        .stats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-top: 14px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-top: 14px;
+        }
         .card {
-            border: 1px solid #d8e3ee;
+            border: 1px solid var(--line);
             border-radius: 14px;
             padding: 16px;
             background: var(--surface);
         }
         .kpi { font-size: 28px; font-weight: 700; margin-top: 8px; }
-        .list-item { border: 1px solid #e6edf4; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-        .meta { color: var(--muted); font-size: 13px; }
+        .panel {
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px;
+            background: var(--surface);
+        }
+        .list-item {
+            border: 1px solid #dfebf3;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fcfeff;
+        }
+        .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
         .status {
             display: inline-block;
             border-radius: 999px;
@@ -72,20 +89,29 @@
             margin-top: 6px;
         }
         .status.done { background: #e3f3f1; color: var(--ok); }
-        select, button {
-            width: 100%;
-            padding: 9px;
-            margin-top: 8px;
-            border-radius: 10px;
-            border: 1px solid #cfdbe7;
-            box-sizing: border-box;
-            font: inherit;
+        .quick-actions {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        button { background: var(--brand); color: #fff; border: none; cursor: pointer; }
-        .two { grid-template-columns: 1fr 1fr; margin-top: 14px; }
+        .btn {
+            display: inline-block;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 600;
+            border: 1px solid #bed6e3;
+            color: #11465b;
+            background: #ecf7fc;
+        }
+        .btn.primary {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #ffffff;
+        }
         @media (max-width: 900px) {
             .layout { grid-template-columns: 1fr; }
-            .two { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -94,6 +120,7 @@
     <aside class="sidebar">
         <div class="brand">Civic Pulse</div>
         <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/officer/tasks">Assigned Tasks</a>
         <a class="nav-link" href="/profile">Profile</a>
         <form method="post" action="/logout">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -103,14 +130,12 @@
 
     <main class="content">
     <div class="wrap">
-        <div class="topbar">
-            <div>
-                <div class="title">Officer Dashboard</div>
-                <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Manage your assigned grievance queue.</div>
-            </div>
+        <div>
+            <div class="title">Officer Dashboard</div>
+            <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Track your queue and jump to active task updates.</div>
         </div>
 
-    <div class="grid stats">
+    <div class="stats">
         <div class="card">
             <div>Total Assigned</div>
             <div class="kpi" th:text="${totalAssigned}">0</div>
@@ -120,40 +145,30 @@
             <div class="kpi" th:text="${activeCount}">0</div>
         </div>
         <div class="card">
-            <div>Solved by You</div>
+            <div>Resolved</div>
             <div class="kpi" th:text="${solvedCount}">0</div>
         </div>
+        <div class="card">
+            <div>Resolved Today</div>
+            <div class="kpi" th:text="${resolvedToday}">0</div>
+        </div>
     </div>
 
-    <div class="grid two">
-        <div class="card">
-            <h3>Latest Assigned Grievances</h3>
-            <div th:if="${#lists.isEmpty(latestAssigned)}">No assigned grievances.</div>
-            <div th:each="g : ${latestAssigned}" class="list-item">
-                <div><strong th:text="${g.title}">Title</strong></div>
-                <div class="meta" th:text="${g.description}">Description</div>
-                <span class="status" th:text="${g.status}">PENDING</span>
-                <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <label>Update Status</label>
-                    <select name="status">
-                        <option th:each="status : ${statuses}" th:selected="${status == g.status}" th:value="${status}" th:text="${status}"></option>
-                    </select>
-                    <button type="submit">Save</button>
-                </form>
-            </div>
-        </div>
+    <div class="quick-actions">
+        <a class="btn primary" href="/officer/tasks">Open Assigned Tasks</a>
+        <a class="btn" href="/profile">View Profile</a>
+    </div>
 
-        <div class="card">
-            <h3>Latest Solved</h3>
-            <div th:if="${#lists.isEmpty(latestSolved)}">No solved grievances yet.</div>
-            <div th:each="g : ${latestSolved}" class="list-item">
+    <div class="panel">
+        <h3 style="margin-top: 0;">Recent Activity</h3>
+        <div th:if="${#lists.isEmpty(recentActivity)}">No activity on assigned grievances yet.</div>
+        <div th:each="g : ${recentActivity}" class="list-item">
                 <div><strong th:text="${g.title}">Title</strong></div>
                 <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
-                <span class="status done" th:text="${g.status}">RESOLVED</span>
+                <div class="meta">Last update: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+                <span class="status" th:classappend="${g.status.name() == 'RESOLVED'} ? ' done'" th:text="${g.status}">PENDING</span>
             </div>
         </div>
-    </div>
 </div>
     </main>
 </div>

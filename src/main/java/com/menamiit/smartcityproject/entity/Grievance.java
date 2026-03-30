@@ -5,6 +5,9 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Table(name = "grievances")
@@ -51,6 +54,12 @@ public class Grievance {
     @Column(nullable = false)
     private LocalDateTime statusUpdatedAt = LocalDateTime.now();
 
+    @Column(length = 2000)
+    private String resolutionNotes;
+
+    @Column(length = 4000)
+    private String resolutionImagePaths;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "citizen_id")
     private User citizen;
@@ -72,5 +81,15 @@ public class Grievance {
 
     public Department getMappedDepartment() {
         return category == null ? Department.GENERAL : category.mappedDepartment();
+    }
+
+    public List<String> getResolutionImagePathList() {
+        if (resolutionImagePaths == null || resolutionImagePaths.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(resolutionImagePaths.split("\\n"))
+            .map(String::trim)
+            .filter(path -> !path.isBlank())
+            .toList();
     }
 }

@@ -32,6 +32,20 @@ public class SchemaCompatibilityInitializer {
 
             addColumnIfMissing(
                 jdbcTemplate,
+                "GRIEVANCES",
+                "RESOLUTION_NOTES",
+                "ALTER TABLE grievances ADD COLUMN resolution_notes VARCHAR(2000)"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
+                "GRIEVANCES",
+                "RESOLUTION_IMAGE_PATHS",
+                "ALTER TABLE grievances ADD COLUMN resolution_image_paths VARCHAR(4000)"
+            );
+
+            addColumnIfMissing(
+                jdbcTemplate,
                 "USERS",
                 "DEPARTMENT",
                 "ALTER TABLE users ADD COLUMN department VARCHAR(255)"

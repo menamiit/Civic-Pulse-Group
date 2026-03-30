@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Assigned Tasks</title>
+    <style>
+        :root {
+            --bg: #f3f9fd;
+            --ink: #183447;
+            --muted: #5c7180;
+            --brand: #0f6e8c;
+            --surface: #ffffff;
+            --line: #d6e6f0;
+            --ok: #166534;
+            --warn: #a16207;
+            --info: #1d4ed8;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: radial-gradient(circle at top right, #dcf1fb, var(--bg));
+            color: var(--ink);
+        }
+        .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+        .sidebar {
+            background: #0f3847;
+            color: #d6edf5;
+            padding: 20px 14px;
+        }
+        .brand { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding: 0 10px; }
+        .nav-link {
+            display: block;
+            color: #d6edf5;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .nav-link.active,
+        .nav-link:hover { background: #195265; }
+        .logout-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #2c6b7f;
+            background: transparent;
+            color: #d6edf5;
+            cursor: pointer;
+        }
+        .content { padding: 20px 16px 32px; }
+        .wrap { max-width: 1160px; }
+        .title { font-size: 30px; font-weight: 700; margin: 0; }
+        .subtitle { color: var(--muted); margin-top: 6px; }
+        .alert {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid;
+            font-size: 14px;
+        }
+        .alert.ok {
+            background: #ecfdf3;
+            border-color: #bbf7d0;
+            color: #14532d;
+        }
+        .alert.err {
+            background: #fff5f5;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .kpi { font-size: 26px; font-weight: 700; margin-top: 6px; }
+        .panel {
+            margin-top: 14px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .task {
+            border: 1px solid #deebf3;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fcfeff;
+        }
+        .task:last-child { margin-bottom: 0; }
+        .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #eff6ff;
+            color: var(--info);
+        }
+        .status.pending { background: #fef3c7; color: var(--warn); }
+        .status.inprogress { background: #dbeafe; color: var(--info); }
+        .status.onhold { background: #f1f5f9; color: #334155; }
+        .status.resolved { background: #dcfce7; color: var(--ok); }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: start;
+        }
+        label { font-size: 12px; color: #4f6674; display: block; margin-bottom: 4px; }
+        select, textarea, input[type="file"], button {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #c8dae6;
+            padding: 9px;
+            box-sizing: border-box;
+            font: inherit;
+            background: #ffffff;
+        }
+        textarea { min-height: 92px; resize: vertical; }
+        button {
+            width: auto;
+            border: none;
+            background: var(--brand);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            padding: 10px 16px;
+        }
+        .image-list {
+            margin-top: 8px;
+            display: grid;
+            gap: 6px;
+        }
+        .image-list a {
+            color: #0f5f78;
+            text-decoration: none;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .image-list a:hover { text-decoration: underline; }
+        @media (max-width: 980px) {
+            .layout { grid-template-columns: 1fr; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">Civic Pulse</div>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/officer/tasks">Assigned Tasks</a>
+        <a class="nav-link" href="/profile">Profile</a>
+        <form method="post" action="/logout">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button class="logout-btn" type="submit">Logout</button>
+        </form>
+    </aside>
+
+    <main class="content">
+        <div class="wrap">
+            <h1 class="title">Assigned Grievance Tasks</h1>
+            <div class="subtitle">Welcome, <strong th:text="${username}">officer</strong>. Update progress, resolve tasks, and upload proof images.</div>
+
+            <div class="alert ok" th:if="${param.updated}">Task status updated successfully.</div>
+            <div class="alert err" th:if="${param.error}">Update failed. Check resolution notes and image constraints, then try again.</div>
+
+            <div class="stats">
+                <div class="card">
+                    <div>Total Assigned</div>
+                    <div class="kpi" th:text="${totalAssigned}">0</div>
+                </div>
+                <div class="card">
+                    <div>Active Tasks</div>
+                    <div class="kpi" th:text="${activeCount}">0</div>
+                </div>
+                <div class="card">
+                    <div>Resolved</div>
+                    <div class="kpi" th:text="${solvedCount}">0</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin-top:0;">Active Tasks</h3>
+                <div th:if="${#lists.isEmpty(activeGrievances)}">No active tasks currently assigned.</div>
+
+                <div th:each="g : ${activeGrievances}" class="task">
+                    <div><strong th:text="${g.title}">Title</strong></div>
+                    <div class="meta" th:text="${g.description}">Description</div>
+                    <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
+                    <div class="meta">Category: <span th:text="${g.category}">OTHER</span></div>
+                    <div class="meta">Last status update: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+
+                    <span class="status"
+                          th:classappend="${g.status.name() == 'PENDING'} ? ' pending' : (${g.status.name() == 'IN_PROGRESS'} ? ' inprogress' : (${g.status.name() == 'ON_HOLD'} ? ' onhold' : ' resolved'))"
+                          th:text="${g.status}">PENDING</span>
+
+                    <form th:action="@{'/officer/grievances/' + ${g.id} + '/status'}" method="post" enctype="multipart/form-data">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                        <div class="form-grid">
+                            <div>
+                                <label>Status</label>
+                                <select name="status" required>
+                                    <option th:each="status : ${statuses}"
+                                            th:value="${status}"
+                                            th:text="${status}"
+                                            th:selected="${status == g.status}"></option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label>Resolution Notes (mandatory when choosing RESOLVED)</label>
+                                <textarea name="resolutionNotes" placeholder="Describe what was fixed and how it was resolved."></textarea>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:10px;">
+                            <label>Resolved Issue Images (optional, up to 5 files, JPG/JPEG/PNG/WEBP, 5 MB each)</label>
+                            <input type="file" name="resolutionImages" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple>
+                        </div>
+
+                        <button type="submit">Save Task Update</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 style="margin-top:0;">Resolved Tasks</h3>
+                <div th:if="${#lists.isEmpty(resolvedGrievances)}">No resolved tasks yet.</div>
+
+                <div th:each="g : ${resolvedGrievances}" class="task">
+                    <div><strong th:text="${g.title}">Title</strong></div>
+                    <div class="meta">Citizen: <span th:text="${g.citizen.username}">citizen</span></div>
+                    <div class="meta">Resolved at: <span th:text="${#temporals.format(g.statusUpdatedAt, 'dd MMM yyyy, hh:mm a')}">date</span></div>
+                    <span class="status resolved" th:text="${g.status}">RESOLVED</span>
+
+                    <div class="meta" style="margin-top:10px;"><strong>Resolution Notes</strong></div>
+                    <div class="meta" th:text="${g.resolutionNotes != null && !g.resolutionNotes.isBlank() ? g.resolutionNotes : 'No notes available.'}">notes</div>
+
+                    <div class="meta" style="margin-top:10px;"><strong>Uploaded Images</strong></div>
+                    <div class="meta" th:if="${#lists.isEmpty(g.resolutionImagePathList)}">No images uploaded.</div>
+                    <div class="image-list" th:if="${!#lists.isEmpty(g.resolutionImagePathList)}">
+                        <a th:each="imgPath : ${g.resolutionImagePathList}" th:href="@{'/' + ${imgPath}}" target="_blank" th:text="${imgPath}">image path</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

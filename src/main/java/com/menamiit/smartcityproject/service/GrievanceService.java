@@ -104,11 +104,40 @@ public class GrievanceService {
     }
 
     public Grievance updateStatus(Long grievanceId, GrievanceStatus status, String officerUsername) {
+        return updateStatus(grievanceId, status, officerUsername, null, List.of());
+    }
+
+    public Grievance updateStatus(
+        Long grievanceId,
+        GrievanceStatus status,
+        String officerUsername,
+        String resolutionNotes,
+        List<String> resolutionImagePaths
+    ) {
         Grievance grievance = grievanceRepository.findById(grievanceId)
             .orElseThrow(() -> new IllegalArgumentException("Grievance not found"));
 
         if (grievance.getAssignedOfficer() == null || !grievance.getAssignedOfficer().getUsername().equals(officerUsername)) {
             throw new IllegalArgumentException("You can only update your assigned grievances");
+        }
+
+        if (grievance.getStatus() == GrievanceStatus.RESOLVED && status != GrievanceStatus.RESOLVED) {
+            throw new IllegalArgumentException("Resolved grievances cannot be moved back to active states");
+        }
+
+        if (status == GrievanceStatus.RESOLVED) {
+            if (resolutionNotes == null || resolutionNotes.isBlank()) {
+                throw new IllegalArgumentException("Resolution notes are required when marking a grievance as resolved");
+            }
+            grievance.setResolutionNotes(resolutionNotes.trim());
+
+            List<String> safePaths = resolutionImagePaths == null ? List.of() : resolutionImagePaths;
+            if (safePaths.size() > 5) {
+                throw new IllegalArgumentException("A maximum of 5 resolution images can be uploaded");
+            }
+            if (!safePaths.isEmpty()) {
+                grievance.setResolutionImagePaths(String.join("\n", safePaths));
+            }
         }
 
         grievance.setStatus(status);

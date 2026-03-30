@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -84,6 +85,8 @@ public class DashboardController {
         model.addAttribute("totalCount", roleGrievances.size());
         model.addAttribute("solvedCount", solvedCount);
         model.addAttribute("isCitizen", user.getRole() == UserRole.CITIZEN);
+        model.addAttribute("isOfficer", user.getRole() == UserRole.OFFICER);
+        model.addAttribute("isAdmin", user.getRole() == UserRole.ADMIN);
         return "profile";
     }
 
@@ -217,46 +220,32 @@ public class DashboardController {
 
     @GetMapping("/officer/home")
     public String officerHome(Authentication authentication, Model model) {
-        List<com.menamiit.smartcityproject.entity.Grievance> grievances =
-            grievanceService.getOfficerGrievances(authentication.getName());
-
-        long solvedCount = grievances.stream()
-            .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
-            .count();
-        long activeCount = grievances.stream()
-            .filter(g -> g.getStatus() == GrievanceStatus.PENDING || g.getStatus() == GrievanceStatus.IN_PROGRESS)
-            .count();
-
-        List<com.menamiit.smartcityproject.entity.Grievance> latestAssigned = grievances.stream()
-            .sorted(Comparator.comparing(com.menamiit.smartcityproject.entity.Grievance::getStatusUpdatedAt).reversed())
-            .limit(5)
-            .toList();
-
-        List<com.menamiit.smartcityproject.entity.Grievance> latestSolved = grievances.stream()
-            .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
-            .sorted(Comparator.comparing(com.menamiit.smartcityproject.entity.Grievance::getStatusUpdatedAt).reversed())
-            .limit(5)
-            .toList();
-
-        model.addAttribute("username", authentication.getName());
-        model.addAttribute("grievances", grievances);
-        model.addAttribute("totalAssigned", grievances.size());
-        model.addAttribute("activeCount", activeCount);
-        model.addAttribute("solvedCount", solvedCount);
-        model.addAttribute("latestAssigned", latestAssigned);
-        model.addAttribute("latestSolved", latestSolved);
-        model.addAttribute("statuses", GrievanceStatus.values());
+        addOfficerModelAttributes(authentication, model);
         return "officer-home";
+    }
+
+    @GetMapping("/officer/tasks")
+    public String officerTasks(Authentication authentication, Model model) {
+        addOfficerModelAttributes(authentication, model);
+        return "officer-tasks";
     }
 
     @PostMapping("/officer/grievances/{id}/status")
     public String updateStatus(
         Authentication authentication,
         @PathVariable Long id,
-        @RequestParam GrievanceStatus status
+        @RequestParam GrievanceStatus status,
+        @RequestParam(required = false) String resolutionNotes,
+        @RequestParam(name = "resolutionImages", required = false) List<MultipartFile> resolutionImages
     ) {
-        grievanceService.updateStatus(id, status, authentication.getName());
-        return "redirect:/officer/home";
+        try {
+            List<String> storedPaths = fileStorageService.storeResolutionImages(resolutionImages, id);
+            grievanceService.updateStatus(id, status, authentication.getName(), resolutionNotes, storedPaths);
+            return "redirect:/officer/tasks?updated=true";
+        } catch (Exception ex) {
+            log.warn("Officer status update failed for grievance {} by {}: {}", id, authentication.getName(), ex.getMessage());
+            return "redirect:/officer/tasks?error=true";
+        }
     }
 
     @GetMapping("/admin/home")
@@ -381,5 +370,39 @@ public class DashboardController {
             }
         }
         return false;
+    }
+
+    private void addOfficerModelAttributes(Authentication authentication, Model model) {
+        List<Grievance> grievances = grievanceService.getOfficerGrievances(authentication.getName());
+
+        List<Grievance> activeGrievances = grievances.stream()
+            .filter(g -> g.getStatus() != GrievanceStatus.RESOLVED)
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
+            .toList();
+
+        List<Grievance> resolvedGrievances = grievances.stream()
+            .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt).reversed())
+            .toList();
+
+        long resolvedToday = grievances.stream()
+            .filter(g -> g.getStatus() == GrievanceStatus.RESOLVED)
+            .filter(g -> g.getStatusUpdatedAt() != null && g.getStatusUpdatedAt().toLocalDate().isEqual(LocalDate.now()))
+            .count();
+
+        List<Grievance> recentActivity = grievances.stream()
+            .sorted(Comparator.comparing(Grievance::getStatusUpdatedAt, Comparator.nullsLast(LocalDateTime::compareTo)).reversed())
+            .limit(5)
+            .toList();
+
+        model.addAttribute("username", authentication.getName());
+        model.addAttribute("activeGrievances", activeGrievances);
+        model.addAttribute("resolvedGrievances", resolvedGrievances);
+        model.addAttribute("recentActivity", recentActivity);
+        model.addAttribute("totalAssigned", grievances.size());
+        model.addAttribute("activeCount", activeGrievances.size());
+        model.addAttribute("solvedCount", resolvedGrievances.size());
+        model.addAttribute("resolvedToday", resolvedToday);
+        model.addAttribute("statuses", GrievanceStatus.values());
     }
 }
